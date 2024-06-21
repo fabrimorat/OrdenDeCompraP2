@@ -1,0 +1,71 @@
+﻿@page
+@model OrderModel
+
+<h2>Orden de Compra</h2>
+
+<form id="orderForm">
+    <div>
+        <label for="PokemonName">Nombre del Pokémon:</label>
+        <input type="text" id="PokemonName" name="PokemonName" />
+        <button type="button" onclick="fetchPokemon()">Buscar Pokémon</button>
+    </div>
+    <div id="pokemonImage">
+        <!-- La imagen se cargará aquí -->
+    </div>
+    <div>
+        <label for="Quantity">Cantidad:</label>
+        <input type="number" id="Quantity" name="Quantity" />
+    </div>
+    <div>
+        <label for="CustomerInfo">Información del Cliente:</label>
+        <input type="text" id="CustomerInfo" name="CustomerInfo" />
+    </div>
+    <button type="button" onclick="submitOrder()">Generar CSV de la Orden</button>
+</form>
+
+<script>
+    function fetchPokemon() {
+        var name = document.getElementById('PokemonName').value;
+        fetch(`/api/Pokemon/GetPokemonImage?pokemonName=${encodeURIComponent(name)}`)
+            .then(response => response.json())
+            .then(data => {
+                if (data.imageUrl) {
+                    document.getElementById('pokemonImage').innerHTML = `<img src="${data.imageUrl}" alt="Imagen de ${name}" />`;
+                } else {
+                    document.getElementById('pokemonImage').innerHTML = 'Imagen no disponible.';
+                }
+            })
+            .catch(error => console.error('Error fetching the Pokémon image:', error));
+    }
+
+    function submitOrder() {
+        var orderData = {
+            PokemonName: document.getElementById('PokemonName').value,
+            Quantity: parseInt(document.getElementById('Quantity').value),
+            CustomerInfo: document.getElementById('CustomerInfo').value
+        };
+
+        fetch('/api/order/CreateOrder', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(orderData)
+        })
+            .then(response => {
+                if (response.ok) {
+                    return response.blob();
+                } else {
+                    throw new Error('Failed to connect to the API: ' + response.status);
+                }
+            })
+            .then(blob => {
+                var url = window.URL.createObjectURL(blob);
+                var a = document.createElement('a');
+                a.href = url;
+                a.download = "Order.csv";
+                document.body.appendChild(a);
+                a.click();
+                a.remove();
+            })
+            .catch(error => console.error('Error creating order:', error));
+    }
+</script>
